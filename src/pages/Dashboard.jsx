@@ -7,6 +7,7 @@ import IdeaForm from "../components/IdeaForm"
 import IdeaCard from "../components/IdeaCard"
 import { LogOut, Lightbulb } from "lucide-react"
 import toast from "react-hot-toast"
+import SearchFilter from "../components/SearchFilter"
 
 function Dashboard() {
   // Get logged in user from AuthContext
@@ -17,6 +18,10 @@ function Dashboard() {
 
   // loading = true while fetching ideas from Firestore
   const [loading, setLoading] = useState(true)
+
+  // Search and filter state
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedMood, setSelectedMood] = useState("All")
 
   // Fetch ideas when Dashboard mounts or user changes
   useEffect(() => {
@@ -76,6 +81,15 @@ function Dashboard() {
       console.error("Logout failed:", error)
     }
   }
+  
+  const filteredIdeas = ideas.filter((idea) => {
+    const matchesSearch = idea.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (idea.description && idea.description.toLowerCase().includes(searchTerm.toLowerCase()))
+    const matchesMood = selectedMood === "All" || idea.mood === selectedMood
+
+    return matchesSearch && matchesMood
+  })
+
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -108,6 +122,44 @@ function Dashboard() {
 
         {/* Idea capture form */}
         <IdeaForm onIdeaAdded={handleAddIdea} />
+
+        {/*Search and filter controls */}
+        <SearchFilter
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          selectedMood={selectedMood}
+          onMoodChange={setSelectedMood}
+        />
+        {/* Header row */}
+        <div className="flex items-center justify-between mb-4"> 
+          <h2 className="text-gray-300 font-medium">
+            Your Ideas
+          </h2>
+        {/* Show filtered count vs total */}
+        <span className="text-gray-600 text-sm">
+          {filteredIdeas.length} of {ideas.length} {ideas.length === 1 ? "idea" : "ideas"}
+        </span>
+        </div>
+        {/* empty state for search -different message when filtering */}
+        {!loading && filteredIdeas.length === 0 && ideas.length > 0 && (
+          <div className="text-center py-14">
+            <p className="text-4xl mb-3">🔍</p>
+            <p className="text-gray-500 text-sm">
+              No ideas match your search criteria.
+            </p>
+          </div>
+        )}
+
+        {/*Idea cards list -uses filteredIdeas instead of ideas */}
+        <div className="flex flex-col gap-4">
+          {filteredIdeas.map((idea) => (
+            <IdeaCard
+              key={idea.id}
+              idea={idea}
+              onDelete={handleDeleteIdea}
+            />
+          ))}
+        </div>
 
         {/* Ideas list */}
         <div className="mt-8">
