@@ -1,212 +1,111 @@
-import { useState, useEffect } from "react"
+import { useState, useMemo } from "react"
 import { signOut } from "firebase/auth"
-import { auth } from "../services/firebase"
-import { useAuth } from "../context/AuthContext"
-import { addIdea, getIdeas, deleteIdea } from "../services/ideasService"
-import IdeaForm from "../components/IdeaForm"
-import IdeaCard from "../components/IdeaCard"
-import { LogOut, Lightbulb } from "lucide-react"
 import toast from "react-hot-toast"
-import SearchFilter from "../components/SearchFilter"
+import { auth } from "@/services/firebase"
+import { useAuth } from "@/context/AuthContext"
+import { useIdeas } from "@/hooks/useIdeas"
+import { filterIdeas } from "@/utils/ideas"
+import { AppHeader } from "@/components/layout/AppHeader"
+import IdeaForm from "@/components/ideas/IdeaForm"
+import IdeaCard from "@/components/ideas/IdeaCard"
+import SearchFilter from "@/components/ideas/SearchFilter"
 
-function Dashboard() {
-  // Get logged in user from AuthContext
-  const { user } = useAuth()
+/**
+ * Keyed by user.uid so a different account remounts with fresh ideas state.
+ */
+function DashboardMain({ user }) {
+  const { ideas, loading, addIdea, deleteIdea } = useIdeas(user.uid)
 
-  // ideas = array of idea objects fetched from Firestore
-  const [ideas, setIdeas] = useState([])
-
-  // loading = true while fetching ideas from Firestore
-  const [loading, setLoading] = useState(true)
-
-  // Search and filter state
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedMood, setSelectedMood] = useState("All")
 
-  // Fetch ideas when Dashboard mounts or user changes
-  useEffect(() => {
-    if (!user) return
+  const filteredIdeas = useMemo(
+    () => filterIdeas(ideas, { searchTerm, selectedMood }),
+    [ideas, searchTerm, selectedMood],
+  )
 
-    const fetchIdeas = async () => {
-      try {
-        const data = await getIdeas(user.uid)
-        setIdeas(data)
-      } catch (error) {
-        toast.error("Failed to load ideas")
-      } finally {
-        setLoading(false)
-      }
-    }
+  const countLabel =
+    !loading && ideas.length > 0
+      ? `${filteredIdeas.length} of ${ideas.length} ${ideas.length === 1 ? "idea" : "ideas"}`
+      : null
 
-    fetchIdeas()
-  }, [user])
+  return (
+    <main className="max-w-2xl mx-auto px-4 py-8">
+      <IdeaForm onIdeaAdded={addIdea} />
 
-  // Handle adding a new idea
-  // Called by IdeaForm when user submits
-  const handleAddIdea = async (ideaData) => {
-    const newId = await addIdea(user.uid, ideaData)
+      <SearchFilter
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        selectedMood={selectedMood}
+        onMoodChange={setSelectedMood}
+      />
 
-    // Optimistically add to local state so UI updates instantly
-    // Without this, user would have to wait for a refetch to see their idea
-    setIdeas((prev) => [
-      {
-        id: newId,
-        ...ideaData,
-        userId: user.uid,
-        maturity: "raw",
-        createdAt: null, // null until Firestore confirms
-      },
-      ...prev,
-    ])
-  }
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-gray-300 font-medium">Your Ideas</h2>
+        {countLabel && (
+          <span className="text-gray-600 text-sm">{countLabel}</span>
+        )}
+      </div>
 
-  // Handle deleting an idea
-  // Called by IdeaCard when user clicks delete
-  const handleDeleteIdea = async (ideaId) => {
-    try {
-      await deleteIdea(ideaId)
+      {loading && (
+        <p className="text-gray-600 text-sm text-center py-10">
+          Loading your ideas...
+        </p>
+      )}
 
-      // Remove from local state immediately so UI feels instant
-      setIdeas((prev) => prev.filter((idea) => idea.id !== ideaId))
-      toast.success("Idea deleted")
-    } catch (error) {
-      toast.error("Failed to delete idea")
-    }
-  }
+      {!loading && ideas.length === 0 && (
+        <div className="text-center py-16">
+          <p className="text-4xl mb-3" aria-hidden>
+            💭
+          </p>
+          <p className="text-gray-500 text-sm">
+            No ideas yet. Capture your first one above!
+          </p>
+        </div>
+      )}
+
+      {!loading && ideas.length > 0 && filteredIdeas.length === 0 && (
+        <div className="text-center py-14">
+          <p className="text-4xl mb-3" aria-hidden>
+            🔍
+          </p>
+          <p className="text-gray-500 text-sm">
+            No ideas match your search criteria.
+          </p>
+        </div>
+      )}
+
+      {!loading && filteredIdeas.length > 0 && (
+        <ul className="flex flex-col gap-4 list-none p-0 m-0">
+          {filteredIdeas.map((idea) => (
+            <li key={idea.id}>
+              <IdeaCard idea={idea} onDelete={deleteIdea} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </main>
+  )
+}
+
+export default function Dashboard() {
+  const { user } = useAuth()
+
+  const greetingName = user?.displayName?.split(" ")[0]
 
   const handleLogout = async () => {
     try {
       await signOut(auth)
-    } catch (error) {
-      console.error("Logout failed:", error)
+    } catch {
+      toast.error("Could not log out. Try again.")
     }
   }
-  
-  const filteredIdeas = ideas.filter((idea) => {
-    const matchesSearch = idea.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (idea.description && idea.description.toLowerCase().includes(searchTerm.toLowerCase()))
-    const matchesMood = selectedMood === "All" || idea.mood === selectedMood
-
-    return matchesSearch && matchesMood
-  })
-
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
+      <AppHeader greetingName={greetingName} onLogout={handleLogout} />
 
-      {/* Top navigation bar */}
-      <nav className="border-b border-gray-800 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Lightbulb size={22} className="text-purple-400" />
-          <span className="text-lg font-bold text-white">Idea Keeper</span>
-        </div>
-
-        {/* User info and logout */}
-        <div className="flex items-center gap-4">
-          <span className="text-gray-400 text-sm hidden sm:block">
-            Hey, {user?.displayName?.split(" ")[0]} 👋
-          </span>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 text-gray-400 
-                       hover:text-white transition-colors text-sm"
-          >
-            <LogOut size={16} />
-            Logout
-          </button>
-        </div>
-      </nav>
-
-      {/* Main content */}
-      <main className="max-w-2xl mx-auto px-4 py-8">
-
-        {/* Idea capture form */}
-        <IdeaForm onIdeaAdded={handleAddIdea} />
-
-        {/*Search and filter controls */}
-        <SearchFilter
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          selectedMood={selectedMood}
-          onMoodChange={setSelectedMood}
-        />
-        {/* Header row */}
-        <div className="flex items-center justify-between mb-4"> 
-          <h2 className="text-gray-300 font-medium">
-            Your Ideas
-          </h2>
-        {/* Show filtered count vs total */}
-        <span className="text-gray-600 text-sm">
-          {filteredIdeas.length} of {ideas.length} {ideas.length === 1 ? "idea" : "ideas"}
-        </span>
-        </div>
-        {/* empty state for search -different message when filtering */}
-        {!loading && filteredIdeas.length === 0 && ideas.length > 0 && (
-          <div className="text-center py-14">
-            <p className="text-4xl mb-3">🔍</p>
-            <p className="text-gray-500 text-sm">
-              No ideas match your search criteria.
-            </p>
-          </div>
-        )}
-
-        {/*Idea cards list -uses filteredIdeas instead of ideas */}
-        <div className="flex flex-col gap-4">
-          {filteredIdeas.map((idea) => (
-            <IdeaCard
-              key={idea.id}
-              idea={idea}
-              onDelete={handleDeleteIdea}
-            />
-          ))}
-        </div>
-
-        {/* Ideas list */}
-        <div className="mt-8">
-
-          {/* Header row */}
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-gray-300 font-medium">
-              Your Ideas
-            </h2>
-            <span className="text-gray-600 text-sm">
-              {ideas.length} {ideas.length === 1 ? "idea" : "ideas"}
-            </span>
-          </div>
-
-          {/* Loading state */}
-          {loading && (
-            <p className="text-gray-600 text-sm text-center py-10">
-              Loading your ideas...
-            </p>
-          )}
-
-          {/* Empty state — shown when user has no ideas yet */}
-          {!loading && ideas.length === 0 && (
-            <div className="text-center py-16">
-              <p className="text-4xl mb-3">💭</p>
-              <p className="text-gray-500 text-sm">
-                No ideas yet. Capture your first one above!
-              </p>
-            </div>
-          )}
-
-          {/* Idea cards list */}
-          <div className="flex flex-col gap-4">
-            {ideas.map((idea) => (
-              <IdeaCard
-                key={idea.id}
-                idea={idea}
-                onDelete={handleDeleteIdea}
-              />
-            ))}
-          </div>
-
-        </div>
-      </main>
-
+      {user && <DashboardMain key={user.uid} user={user} />}
     </div>
   )
 }
-
-export default Dashboard
