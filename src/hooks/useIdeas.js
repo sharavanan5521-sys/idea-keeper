@@ -6,6 +6,7 @@ import {
   updateIdea as updateIdeaInFirestore,
   deleteIdea as deleteIdeaFromFirestore,
 } from "@/services/ideasService"
+import { tagIdea } from "@/services/geminiService"
 
 /**
  * Loads and mutates the current user's ideas in Firestore.
@@ -40,16 +41,21 @@ export function useIdeas(userId) {
   const addIdea = useCallback(
     async (ideaData) => {
       const newId = await createIdeaInFirestore(userId, ideaData)
-      setIdeas((prev) => [
-        {
-          id: newId,
-          ...ideaData,
-          userId,
-          maturity: "raw",
-          createdAt: null,
-        },
-        ...prev,
-      ])
+      const newIdea = { id: newId, ...ideaData, userId, maturity: "raw", createdAt: null, category: null, tags: [] }
+      setIdeas((prev) => [newIdea, ...prev])
+
+      // Tag with AI in the background — failure is silent so the save always succeeds
+      tagIdea(ideaData)
+        .then(({ category, tags }) => {
+          updateIdeaInFirestore(newId, { category, tags })
+          setIdeas((prev) =>
+            prev.map((idea) => (idea.id === newId ? { ...idea, category, tags } : idea)),
+          )
+        })
+        .catch(() => {
+          // Non-critical — idea is already saved without tags
+        })
+
       return newId
     },
     [userId],
