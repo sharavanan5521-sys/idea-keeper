@@ -6,7 +6,7 @@ import {
   updateIdea as updateIdeaInFirestore,
   deleteIdea as deleteIdeaFromFirestore,
 } from "@/services/ideasService"
-import { tagIdea } from "@/services/geminiService"
+import { tagIdea, AI_ERRORS } from "@/services/aiService"
 
 /**
  * Loads and mutates the current user's ideas in Firestore.
@@ -52,8 +52,14 @@ export function useIdeas(userId) {
             prev.map((idea) => (idea.id === newId ? { ...idea, category, tags } : idea)),
           )
         })
-        .catch(() => {
-          // Non-critical — idea is already saved without tags
+        .catch((err) => {
+          // NO_KEY is silent — don't nag the user on every save
+          if (err.message === AI_ERRORS.RATE_LIMIT) {
+            toast.error("AI rate limit reached — update your key in Settings.")
+          } else if (err.message === AI_ERRORS.INVALID_KEY) {
+            toast.error("Invalid API key — check Settings.")
+          }
+          // UNKNOWN and NO_KEY fail silently; idea is already saved
         })
 
       return newId
