@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Trash2, Pencil, X, Check } from "lucide-react"
+import { Trash2, Pencil, X, Check, Maximize2 } from "lucide-react"
 import { MATURITY_STYLES } from "@/constants/maturity"
 import { MOOD_OPTIONS } from "@/constants/moods"
 import { CATEGORIES } from "@/constants/categories"
@@ -85,7 +85,7 @@ function EditForm({ idea, onSave, onCancel }) {
   )
 }
 
-export default function IdeaCard({ idea, onDelete, onUpdate }) {
+export default function IdeaCard({ idea, onDelete, onUpdate, onExpand }) {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [editing, setEditing] = useState(false)
   const maturity = MATURITY_STYLES[idea.maturity] || MATURITY_STYLES.raw
@@ -114,6 +114,14 @@ export default function IdeaCard({ idea, onDelete, onUpdate }) {
                 {idea.title}
               </h3>
               <div className="flex items-center gap-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => onExpand(idea)}
+                  className="text-gray-600 hover:text-purple-400 transition-colors p-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  aria-label={`Expand idea: ${idea.title}`}
+                >
+                  <Maximize2 size={15} aria-hidden />
+                </button>
                 <button
                   type="button"
                   onClick={() => setEditing(true)}

@@ -8,7 +8,7 @@ export const AI_PROVIDERS = {
     badge: "Gemini",
     color: "bg-blue-900 text-blue-300",
     keyPrefix: "AIza",
-    model: "gemini-1.5-flash",
+    model: "gemini-3.5-flash",
     keyUrl: "https://aistudio.google.com/app/apikey",
     // Step-by-step shown in SettingsModal when this provider is detected
     steps: [
@@ -24,7 +24,7 @@ export const AI_PROVIDERS = {
     badge: "Groq",
     color: "bg-orange-900 text-orange-300",
     keyPrefix: "gsk_",
-    model: "llama-3.1-8b-instant",
+    model: "llama-3.3-70b-versatile",
     keyUrl: "https://console.groq.com/keys",
     steps: [
       "Go to Groq Console (console.groq.com)",
@@ -39,7 +39,7 @@ export const AI_PROVIDERS = {
     badge: "OpenAI",
     color: "bg-green-900 text-green-300",
     keyPrefix: "sk-",
-    model: "gpt-4o-mini",
+    model: "gpt-4.1-mini",
     keyUrl: "https://platform.openai.com/api-keys",
     steps: [
       "Go to OpenAI Platform (platform.openai.com)",

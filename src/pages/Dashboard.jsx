@@ -11,15 +11,18 @@ import IdeaForm from "@/components/ideas/IdeaForm"
 import IdeaCard from "@/components/ideas/IdeaCard"
 import SearchFilter from "@/components/ideas/SearchFilter"
 import { AIBanner, isBannerVisible, dismissBanner } from "@/components/ai/AIBanner"
+import { IdeaDetailModal } from "@/components/ideas/IdeaDetailModal"
 
 /**
  * Keyed by user.uid so a different account remounts with fresh ideas state.
  */
 function DashboardMain({ user, onOpenSettings, aiKey }) {
-  const { ideas, loading, addIdea, updateIdea, deleteIdea } = useIdeas(user.uid)
+  const { ideas, loading, addIdea, updateIdea, deleteIdea, addExpansion } = useIdeas(user.uid)
 
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedMood, setSelectedMood] = useState("All")
+  const [expandedIdeaId, setExpandedIdeaId] = useState(null)
+  const expandedIdea = expandedIdeaId ? ideas.find((i) => i.id === expandedIdeaId) ?? null : null
   // Banner hides when key is added or manually dismissed
   const [showBanner, setShowBanner] = useState(() => isBannerVisible() && !aiKey)
 
@@ -45,6 +48,7 @@ function DashboardMain({ user, onOpenSettings, aiKey }) {
       : null
 
   return (
+    <>
     <main className="max-w-2xl mx-auto px-4 py-8">
       {showBanner && !aiKey && (
         <div className="mb-6">
@@ -100,12 +104,21 @@ function DashboardMain({ user, onOpenSettings, aiKey }) {
         <ul className="flex flex-col gap-4 list-none p-0 m-0">
           {filteredIdeas.map((idea) => (
             <li key={idea.id}>
-              <IdeaCard idea={idea} onDelete={deleteIdea} onUpdate={updateIdea} />
+              <IdeaCard idea={idea} onDelete={deleteIdea} onUpdate={updateIdea} onExpand={(idea) => setExpandedIdeaId(idea.id)} />
             </li>
           ))}
         </ul>
       )}
     </main>
+
+    {expandedIdea && (
+      <IdeaDetailModal
+        idea={expandedIdea}
+        onClose={() => setExpandedIdeaId(null)}
+        onAddExpansion={addExpansion}
+      />
+    )}
+  </>
   )
 }
 

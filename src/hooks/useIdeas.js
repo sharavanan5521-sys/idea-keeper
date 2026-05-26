@@ -5,6 +5,7 @@ import {
   getIdeas,
   updateIdea as updateIdeaInFirestore,
   deleteIdea as deleteIdeaFromFirestore,
+  addExpansion as addExpansionToFirestore,
 } from "@/services/ideasService"
 import { tagIdea, AI_ERRORS } from "@/services/aiService"
 
@@ -89,5 +90,16 @@ export function useIdeas(userId) {
     }
   }, [])
 
-  return { ideas, loading, addIdea, updateIdea, deleteIdea }
+  const addExpansion = useCallback(async (ideaId, expansion) => {
+    await addExpansionToFirestore(ideaId, expansion)
+    setIdeas((prev) =>
+      prev.map((idea) =>
+        idea.id === ideaId
+          ? { ...idea, expansions: [...(idea.expansions || []), expansion] }
+          : idea,
+      ),
+    )
+  }, [])
+
+  return { ideas, loading, addIdea, updateIdea, deleteIdea, addExpansion }
 }
