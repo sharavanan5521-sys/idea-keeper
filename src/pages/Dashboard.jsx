@@ -14,7 +14,7 @@ import SearchFilter from "@/components/ideas/SearchFilter"
  * Keyed by user.uid so a different account remounts with fresh ideas state.
  */
 function DashboardMain({ user }) {
-  const { ideas, loading, addIdea, deleteIdea } = useIdeas(user.uid)
+  const { ideas, loading, addIdea, updateIdea, deleteIdea } = useIdeas(user.uid)
 
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedMood, setSelectedMood] = useState("All")
@@ -79,7 +79,7 @@ function DashboardMain({ user }) {
         <ul className="flex flex-col gap-4 list-none p-0 m-0">
           {filteredIdeas.map((idea) => (
             <li key={idea.id}>
-              <IdeaCard idea={idea} onDelete={deleteIdea} />
+              <IdeaCard idea={idea} onDelete={deleteIdea} onUpdate={updateIdea} />
             </li>
           ))}
         </ul>
