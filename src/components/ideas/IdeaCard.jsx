@@ -1,7 +1,8 @@
 import { useState } from "react"
-import { Trash2, Pencil, X, Check } from "lucide-react"
+import { Trash2, Pencil, X, Check, Maximize2 } from "lucide-react"
 import { MATURITY_STYLES } from "@/constants/maturity"
 import { MOOD_OPTIONS } from "@/constants/moods"
+import { CATEGORIES } from "@/constants/categories"
 import { formatIdeaDate } from "@/utils/format"
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog"
 
@@ -84,10 +85,11 @@ function EditForm({ idea, onSave, onCancel }) {
   )
 }
 
-export default function IdeaCard({ idea, onDelete, onUpdate }) {
+export default function IdeaCard({ idea, onDelete, onUpdate, onExpand }) {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [editing, setEditing] = useState(false)
   const maturity = MATURITY_STYLES[idea.maturity] || MATURITY_STYLES.raw
+  const category = idea.category ? CATEGORIES[idea.category] : null
   const formattedDate = formatIdeaDate(idea.createdAt)
 
   const handleSave = (updates) => {
@@ -112,6 +114,14 @@ export default function IdeaCard({ idea, onDelete, onUpdate }) {
                 {idea.title}
               </h3>
               <div className="flex items-center gap-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => onExpand(idea)}
+                  className="text-gray-600 hover:text-purple-400 transition-colors p-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  aria-label={`Expand idea: ${idea.title}`}
+                >
+                  <Maximize2 size={15} aria-hidden />
+                </button>
                 <button
                   type="button"
                   onClick={() => setEditing(true)}
@@ -142,6 +152,16 @@ export default function IdeaCard({ idea, onDelete, onUpdate }) {
               <span className={`text-xs px-2.5 py-1 rounded-full ${maturity.color}`}>
                 {maturity.label}
               </span>
+              {category && (
+                <span className={`text-xs px-2.5 py-1 rounded-full ${category.color}`}>
+                  {category.label}
+                </span>
+              )}
+              {idea.tags?.map((tag) => (
+                <span key={tag} className="text-xs bg-gray-800 text-gray-400 px-2.5 py-1 rounded-full">
+                  #{tag}
+                </span>
+              ))}
               <span className="text-xs text-gray-600 ml-auto">{formattedDate}</span>
             </div>
           </>

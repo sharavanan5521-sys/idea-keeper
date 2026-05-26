@@ -5,7 +5,9 @@ import {
   getIdeas,
   updateIdea as updateIdeaInFirestore,
   deleteIdea as deleteIdeaFromFirestore,
+  addExpansion as addExpansionToFirestore,
 } from "@/services/ideasService"
+import { tagIdea, AI_ERRORS } from "@/services/aiService"
 
 /**
  * Loads and mutates the current user's ideas in Firestore.
@@ -40,16 +42,27 @@ export function useIdeas(userId) {
   const addIdea = useCallback(
     async (ideaData) => {
       const newId = await createIdeaInFirestore(userId, ideaData)
-      setIdeas((prev) => [
-        {
-          id: newId,
-          ...ideaData,
-          userId,
-          maturity: "raw",
-          createdAt: null,
-        },
-        ...prev,
-      ])
+      const newIdea = { id: newId, ...ideaData, userId, maturity: "raw", createdAt: null, category: null, tags: [] }
+      setIdeas((prev) => [newIdea, ...prev])
+
+      // Tag with AI in the background — failure is silent so the save always succeeds
+      tagIdea(ideaData)
+        .then(({ category, tags }) => {
+          updateIdeaInFirestore(newId, { category, tags })
+          setIdeas((prev) =>
+            prev.map((idea) => (idea.id === newId ? { ...idea, category, tags } : idea)),
+          )
+        })
+        .catch((err) => {
+          // NO_KEY is silent — don't nag the user on every save
+          if (err.message === AI_ERRORS.RATE_LIMIT) {
+            toast.error("AI rate limit reached — update your key in Settings.")
+          } else if (err.message === AI_ERRORS.INVALID_KEY) {
+            toast.error("Invalid API key — check Settings.")
+          }
+          // UNKNOWN and NO_KEY fail silently; idea is already saved
+        })
+
       return newId
     },
     [userId],
@@ -77,5 +90,16 @@ export function useIdeas(userId) {
     }
   }, [])
 
-  return { ideas, loading, addIdea, updateIdea, deleteIdea }
+  const addExpansion = useCallback(async (ideaId, expansion) => {
+    await addExpansionToFirestore(ideaId, expansion)
+    setIdeas((prev) =>
+      prev.map((idea) =>
+        idea.id === ideaId
+          ? { ...idea, expansions: [...(idea.expansions || []), expansion] }
+          : idea,
+      ),
+    )
+  }, [])
+
+  return { ideas, loading, addIdea, updateIdea, deleteIdea, addExpansion }
 }
