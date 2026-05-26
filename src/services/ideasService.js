@@ -3,6 +3,7 @@ import {
   addDoc,
   getDocs,
   deleteDoc,
+  updateDoc,
   doc,
   query,
   where,
@@ -56,6 +57,21 @@ export const getIdeas = async (userId) => {
     }))
   } catch (error) {
     console.error("Error fetching ideas:", error)
+    throw error
+  }
+}
+
+// UPDATE IDEA
+// Merges partial updates into an existing idea document
+// updatedAt is always overwritten with server time to keep audit trail accurate
+export const updateIdea = async (ideaId, updates) => {
+  try {
+    await updateDoc(doc(db, "ideas", ideaId), {
+      ...updates,
+      updatedAt: serverTimestamp(),
+    })
+  } catch (error) {
+    console.error("Error updating idea:", error)
     throw error
   }
 }

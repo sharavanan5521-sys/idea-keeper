@@ -3,6 +3,7 @@ import toast from "react-hot-toast"
 import {
   addIdea as createIdeaInFirestore,
   getIdeas,
+  updateIdea as updateIdeaInFirestore,
   deleteIdea as deleteIdeaFromFirestore,
 } from "@/services/ideasService"
 
@@ -54,6 +55,18 @@ export function useIdeas(userId) {
     [userId],
   )
 
+  const updateIdea = useCallback(async (ideaId, updates) => {
+    try {
+      await updateIdeaInFirestore(ideaId, updates)
+      setIdeas((prev) =>
+        prev.map((idea) => (idea.id === ideaId ? { ...idea, ...updates } : idea)),
+      )
+      toast.success("Idea updated")
+    } catch {
+      toast.error("Failed to update idea")
+    }
+  }, [])
+
   const deleteIdea = useCallback(async (ideaId) => {
     try {
       await deleteIdeaFromFirestore(ideaId)
@@ -64,5 +77,5 @@ export function useIdeas(userId) {
     }
   }, [])
 
-  return { ideas, loading, addIdea, deleteIdea }
+  return { ideas, loading, addIdea, updateIdea, deleteIdea }
 }
