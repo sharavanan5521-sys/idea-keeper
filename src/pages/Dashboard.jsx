@@ -5,19 +5,37 @@ import { auth } from "@/services/firebase"
 import { useAuth } from "@/context/AuthContext"
 import { useIdeas } from "@/hooks/useIdeas"
 import { filterIdeas } from "@/utils/ideas"
+import { getKey } from "@/services/keyStore"
 import { AppHeader } from "@/components/layout/AppHeader"
 import IdeaForm from "@/components/ideas/IdeaForm"
 import IdeaCard from "@/components/ideas/IdeaCard"
 import SearchFilter from "@/components/ideas/SearchFilter"
+import { AIBanner, isBannerVisible, dismissBanner } from "@/components/ai/AIBanner"
+import { IdeaDetailModal } from "@/components/ideas/IdeaDetailModal"
 
 /**
  * Keyed by user.uid so a different account remounts with fresh ideas state.
  */
-function DashboardMain({ user }) {
-  const { ideas, loading, addIdea, updateIdea, deleteIdea } = useIdeas(user.uid)
+function DashboardMain({ user, onOpenSettings, aiKey }) {
+  const { ideas, loading, addIdea, updateIdea, deleteIdea, addExpansion } = useIdeas(user.uid)
 
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedMood, setSelectedMood] = useState("All")
+  const [expandedIdeaId, setExpandedIdeaId] = useState(null)
+  const expandedIdea = expandedIdeaId ? ideas.find((i) => i.id === expandedIdeaId) ?? null : null
+  // Banner hides when key is added or manually dismissed
+  const [showBanner, setShowBanner] = useState(() => isBannerVisible() && !aiKey)
+
+  const handleDismissBanner = () => {
+    dismissBanner()
+    setShowBanner(false)
+  }
+
+  const handleAddKey = () => {
+    dismissBanner()
+    setShowBanner(false)
+    onOpenSettings()
+  }
 
   const filteredIdeas = useMemo(
     () => filterIdeas(ideas, { searchTerm, selectedMood }),
@@ -30,7 +48,14 @@ function DashboardMain({ user }) {
       : null
 
   return (
+    <>
     <main className="max-w-2xl mx-auto px-4 py-8">
+      {showBanner && !aiKey && (
+        <div className="mb-6">
+          <AIBanner onAddKey={handleAddKey} onDismiss={handleDismissBanner} />
+        </div>
+      )}
+
       <IdeaForm onIdeaAdded={addIdea} />
 
       <SearchFilter
@@ -79,19 +104,36 @@ function DashboardMain({ user }) {
         <ul className="flex flex-col gap-4 list-none p-0 m-0">
           {filteredIdeas.map((idea) => (
             <li key={idea.id}>
-              <IdeaCard idea={idea} onDelete={deleteIdea} onUpdate={updateIdea} />
+              <IdeaCard idea={idea} onDelete={deleteIdea} onUpdate={updateIdea} onExpand={(idea) => setExpandedIdeaId(idea.id)} />
             </li>
           ))}
         </ul>
       )}
     </main>
+
+    {expandedIdea && (
+      <IdeaDetailModal
+        idea={expandedIdea}
+        onClose={() => setExpandedIdeaId(null)}
+        onAddExpansion={addExpansion}
+      />
+    )}
+  </>
   )
 }
 
 export default function Dashboard() {
   const { user } = useAuth()
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  // aiKey drives the header chip and banner — re-read from localStorage when settings close
+  const [aiKey, setAiKey] = useState(getKey)
 
   const greetingName = user?.displayName?.split(" ")[0]
+
+  const handleCloseSettings = () => {
+    setAiKey(getKey())
+    setSettingsOpen(false)
+  }
 
   const handleLogout = async () => {
     try {
@@ -103,9 +145,23 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
-      <AppHeader greetingName={greetingName} onLogout={handleLogout} />
+      <AppHeader
+        greetingName={greetingName}
+        onLogout={handleLogout}
+        aiKey={aiKey}
+        settingsOpen={settingsOpen}
+        onOpenSettings={() => setSettingsOpen(true)}
+        onCloseSettings={handleCloseSettings}
+      />
 
-      {user && <DashboardMain key={user.uid} user={user} />}
+      {user && (
+        <DashboardMain
+          key={user.uid}
+          user={user}
+          aiKey={aiKey}
+          onOpenSettings={() => setSettingsOpen(true)}
+        />
+      )}
     </div>
   )
 }

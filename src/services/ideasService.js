@@ -9,6 +9,7 @@ import {
   where,
   orderBy,
   serverTimestamp,
+  arrayUnion,
 } from "firebase/firestore"
 import { db } from "./firebase"
 
@@ -72,6 +73,21 @@ export const updateIdea = async (ideaId, updates) => {
     })
   } catch (error) {
     console.error("Error updating idea:", error)
+    throw error
+  }
+}
+
+// ADD EXPANSION
+// Appends a new AI-generated expansion object to the idea's expansions array.
+// arrayUnion prevents duplicates — safe to call even if the expansion already exists.
+export const addExpansion = async (ideaId, expansion) => {
+  try {
+    await updateDoc(doc(db, "ideas", ideaId), {
+      expansions: arrayUnion(expansion),
+      updatedAt: serverTimestamp(),
+    })
+  } catch (error) {
+    console.error("Error adding expansion:", error)
     throw error
   }
 }
