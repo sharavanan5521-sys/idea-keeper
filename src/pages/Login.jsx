@@ -1,5 +1,4 @@
-import { useEffect } from "react"
-import { signInWithRedirect, getRedirectResult } from "firebase/auth"
+import { signInWithPopup } from "firebase/auth"
 import { Navigate } from "react-router-dom"
 import toast from "react-hot-toast"
 import { LogIn } from "lucide-react"
@@ -9,28 +8,16 @@ import { useAuth } from "@/context/AuthContext"
 export default function Login() {
   const { user } = useAuth()
 
-  useEffect(() => {
-    const handleRedirectResult = async () => {
-      try {
-        await getRedirectResult(auth)
-      } catch (error) {
-        console.error("Redirect result error:", error)
-        toast.error("Sign-in after redirect failed. Try again.")
-      }
-    }
-    handleRedirectResult()
-  }, [])
-
   if (user) {
     return <Navigate to="/" replace />
   }
 
   const handleGoogleLogin = async () => {
     try {
-      await signInWithRedirect(auth, googleProvider)
+      await signInWithPopup(auth, googleProvider)
     } catch (error) {
       console.error("Login failed:", error)
-      toast.error("Could not start Google sign-in. Try again.")
+      toast.error("Could not sign in with Google. Try again.")
     }
   }
 
