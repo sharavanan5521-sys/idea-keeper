@@ -5,6 +5,7 @@ import { auth } from "@/services/firebase"
 import { useAuth } from "@/context/AuthContext"
 import { useIdeas } from "@/hooks/useIdeas"
 import { filterIdeas } from "@/utils/ideas"
+import { getKey } from "@/services/keyStore"
 import { AppHeader } from "@/components/layout/AppHeader"
 import IdeaForm from "@/components/ideas/IdeaForm"
 import IdeaCard from "@/components/ideas/IdeaCard"
@@ -14,12 +15,13 @@ import { AIBanner, isBannerVisible, dismissBanner } from "@/components/ai/AIBann
 /**
  * Keyed by user.uid so a different account remounts with fresh ideas state.
  */
-function DashboardMain({ user, onOpenSettings }) {
+function DashboardMain({ user, onOpenSettings, aiKey }) {
   const { ideas, loading, addIdea, updateIdea, deleteIdea } = useIdeas(user.uid)
 
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedMood, setSelectedMood] = useState("All")
-  const [showBanner, setShowBanner] = useState(isBannerVisible)
+  // Banner hides when key is added or manually dismissed
+  const [showBanner, setShowBanner] = useState(() => isBannerVisible() && !aiKey)
 
   const handleDismissBanner = () => {
     dismissBanner()
@@ -44,7 +46,7 @@ function DashboardMain({ user, onOpenSettings }) {
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-8">
-      {showBanner && (
+      {showBanner && !aiKey && (
         <div className="mb-6">
           <AIBanner onAddKey={handleAddKey} onDismiss={handleDismissBanner} />
         </div>
@@ -110,8 +112,15 @@ function DashboardMain({ user, onOpenSettings }) {
 export default function Dashboard() {
   const { user } = useAuth()
   const [settingsOpen, setSettingsOpen] = useState(false)
+  // aiKey drives the header chip and banner — re-read from localStorage when settings close
+  const [aiKey, setAiKey] = useState(getKey)
 
   const greetingName = user?.displayName?.split(" ")[0]
+
+  const handleCloseSettings = () => {
+    setAiKey(getKey())
+    setSettingsOpen(false)
+  }
 
   const handleLogout = async () => {
     try {
@@ -126,15 +135,17 @@ export default function Dashboard() {
       <AppHeader
         greetingName={greetingName}
         onLogout={handleLogout}
+        aiKey={aiKey}
         settingsOpen={settingsOpen}
         onOpenSettings={() => setSettingsOpen(true)}
-        onCloseSettings={() => setSettingsOpen(false)}
+        onCloseSettings={handleCloseSettings}
       />
 
       {user && (
         <DashboardMain
           key={user.uid}
           user={user}
+          aiKey={aiKey}
           onOpenSettings={() => setSettingsOpen(true)}
         />
       )}

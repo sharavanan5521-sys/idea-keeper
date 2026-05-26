@@ -6,7 +6,7 @@ import { AIStatusChip } from "@/components/ai/AIStatusChip"
  * Top bar — settings state is lifted to Dashboard so the AI banner
  * can also trigger the modal without prop-drilling through AppHeader.
  */
-export function AppHeader({ greetingName, onLogout, settingsOpen, onOpenSettings, onCloseSettings }) {
+export function AppHeader({ greetingName, onLogout, aiKey, settingsOpen, onOpenSettings, onCloseSettings }) {
   return (
     <>
       <header className="border-b border-gray-800 px-6 py-4 flex items-center justify-between">
@@ -21,7 +21,7 @@ export function AppHeader({ greetingName, onLogout, settingsOpen, onOpenSettings
               Hey, {greetingName} 👋
             </span>
           )}
-          <AIStatusChip onOpenSettings={onOpenSettings} />
+          <AIStatusChip aiKey={aiKey} onOpenSettings={onOpenSettings} />
           <button
             type="button"
             onClick={onOpenSettings}

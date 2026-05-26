@@ -1,18 +1,16 @@
 import { Sparkles } from "lucide-react"
 import { AI_PROVIDERS, detectProvider } from "@/constants/aiProviders"
-import { getKey } from "@/services/keyStore"
 
 /**
  * Persistent header chip showing AI status at a glance.
- * Clicking it always opens Settings so users can add or update their key.
+ * Receives aiKey as a prop (owned by Dashboard) so it updates
+ * immediately when the user saves or removes a key in Settings.
  */
-export function AIStatusChip({ onOpenSettings }) {
-  const key = getKey()
-  const provider = detectProvider(key)
+export function AIStatusChip({ aiKey, onOpenSettings }) {
+  const provider = detectProvider(aiKey)
   const providerInfo = provider ? AI_PROVIDERS[provider] : null
 
   if (providerInfo) {
-    // Active state — shows provider name with a live dot
     return (
       <button
         type="button"
@@ -27,7 +25,6 @@ export function AIStatusChip({ onOpenSettings }) {
     )
   }
 
-  // Inactive state — nudges user to enable AI
   return (
     <button
       type="button"
