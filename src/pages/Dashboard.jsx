@@ -9,15 +9,28 @@ import { AppHeader } from "@/components/layout/AppHeader"
 import IdeaForm from "@/components/ideas/IdeaForm"
 import IdeaCard from "@/components/ideas/IdeaCard"
 import SearchFilter from "@/components/ideas/SearchFilter"
+import { AIBanner, isBannerVisible, dismissBanner } from "@/components/ai/AIBanner"
 
 /**
  * Keyed by user.uid so a different account remounts with fresh ideas state.
  */
-function DashboardMain({ user }) {
+function DashboardMain({ user, onOpenSettings }) {
   const { ideas, loading, addIdea, updateIdea, deleteIdea } = useIdeas(user.uid)
 
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedMood, setSelectedMood] = useState("All")
+  const [showBanner, setShowBanner] = useState(isBannerVisible)
+
+  const handleDismissBanner = () => {
+    dismissBanner()
+    setShowBanner(false)
+  }
+
+  const handleAddKey = () => {
+    dismissBanner()
+    setShowBanner(false)
+    onOpenSettings()
+  }
 
   const filteredIdeas = useMemo(
     () => filterIdeas(ideas, { searchTerm, selectedMood }),
@@ -31,6 +44,12 @@ function DashboardMain({ user }) {
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-8">
+      {showBanner && (
+        <div className="mb-6">
+          <AIBanner onAddKey={handleAddKey} onDismiss={handleDismissBanner} />
+        </div>
+      )}
+
       <IdeaForm onIdeaAdded={addIdea} />
 
       <SearchFilter
@@ -90,6 +109,7 @@ function DashboardMain({ user }) {
 
 export default function Dashboard() {
   const { user } = useAuth()
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const greetingName = user?.displayName?.split(" ")[0]
 
@@ -103,9 +123,21 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
-      <AppHeader greetingName={greetingName} onLogout={handleLogout} />
+      <AppHeader
+        greetingName={greetingName}
+        onLogout={handleLogout}
+        settingsOpen={settingsOpen}
+        onOpenSettings={() => setSettingsOpen(true)}
+        onCloseSettings={() => setSettingsOpen(false)}
+      />
 
-      {user && <DashboardMain key={user.uid} user={user} />}
+      {user && (
+        <DashboardMain
+          key={user.uid}
+          user={user}
+          onOpenSettings={() => setSettingsOpen(true)}
+        />
+      )}
     </div>
   )
 }

@@ -1,13 +1,12 @@
-import { useState } from "react"
 import { LogOut, Lightbulb, Settings } from "lucide-react"
 import { SettingsModal } from "@/components/settings/SettingsModal"
+import { AIStatusChip } from "@/components/ai/AIStatusChip"
 
 /**
- * Top bar — reuse on any authenticated layout later (settings, etc.).
+ * Top bar — settings state is lifted to Dashboard so the AI banner
+ * can also trigger the modal without prop-drilling through AppHeader.
  */
-export function AppHeader({ greetingName, onLogout }) {
-  const [settingsOpen, setSettingsOpen] = useState(false)
-
+export function AppHeader({ greetingName, onLogout, settingsOpen, onOpenSettings, onCloseSettings }) {
   return (
     <>
       <header className="border-b border-gray-800 px-6 py-4 flex items-center justify-between">
@@ -22,9 +21,10 @@ export function AppHeader({ greetingName, onLogout }) {
               Hey, {greetingName} 👋
             </span>
           )}
+          <AIStatusChip onOpenSettings={onOpenSettings} />
           <button
             type="button"
-            onClick={() => setSettingsOpen(true)}
+            onClick={onOpenSettings}
             className="text-gray-400 hover:text-white transition-colors p-1.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
             aria-label="Open settings"
           >
@@ -41,7 +41,7 @@ export function AppHeader({ greetingName, onLogout }) {
         </div>
       </header>
 
-      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <SettingsModal open={settingsOpen} onClose={onCloseSettings} />
     </>
   )
 }
